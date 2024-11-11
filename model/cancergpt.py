@@ -100,3 +100,58 @@ class ContinuousValueEncoder(nn.Module):
         x = self.linear2(x)
         x = self.norm(x)
         return self.dropout(x)
+
+
+class PAdaptor(nn.Module):
+    """
+    Constructs the  Perturb-adaptor. This class implements the adaptor part of PRnet. It will chemical perturbation in to 'comb_num' latent space.
+
+    """
+
+    def __init__(self, layer_sizes: list, comb_dimension: int, dropout_rate: float):
+        super().__init__() # to run nn.Module's init method
+        self.linear1 = nn.Linear(1024, 978)
+        self.linear2 = nn.Linear(1, 256)
+        self.act = nn.ReLU()
+
+
+    def forward(self, x: torch.Tensor):
+        x = self.linear1(x)
+        x = self.act(x)
+        x = x.unsqueeze(-1)
+        x = self.linear2(x)
+        return x
+
+
+class DrugDoseGPT(nn.Module):
+    def __init__(self, cancer_gpt: CancerGPT, drug_adaptor: PAdaptor, n_latent: int):
+        super().__init__()
+        self.cancer_gpt = cancer_gpt
+        self.drug_adaptor = drug_adaptor
+        self.mlp = nn.Sequential(*[nn.Linear(256, 512), nn.ReLU(), nn.Linear(512, 978)])
+
+    def freeze(self):
+        for param in self.cancer_gpt.parameters():
+            param.requires_grad = False
+        return self
+
+    def forward(self, src: Tensor,
+        values: Tensor,
+        drug: Tensor,
+        src_key_padding_mask: Tensor):
+
+        drug_embedding = self.drug_adaptor(drug)
+        src = self.cancer_gpt.gene_encoder(src)
+
+        values = self.cancer_gpt.value_encoder(values)
+
+        total_embs = src + values + drug_embedding
+
+        output = self.cancer_gpt.encoder(
+            total_embs, src_key_padding_mask=src_key_padding_mask
+        )[:, 0, :]
+
+        return self.mlp(output)
+
+
+
