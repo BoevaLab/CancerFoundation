@@ -7,13 +7,13 @@ import numpy as np
 
 def _digitize(x: np.ndarray, bins: np.ndarray, side="both") -> np.ndarray:
     """
-    Digitize the data into bins. This method spreads data uniformly when bins
+    Digitize the gene_pertubation into bins. This method spreads gene_pertubation uniformly when bins
     have same values.
 
     Args:
 
     x (:class:`np.ndarray`):
-        The data to digitize.
+        The gene_pertubation to digitize.
     bins (:class:`np.ndarray`):
         The bins to use for digitization, in increasing order.
     side (:class:`str`, optional):
@@ -23,7 +23,7 @@ def _digitize(x: np.ndarray, bins: np.ndarray, side="both") -> np.ndarray:
     Returns:
 
     :class:`np.ndarray`:
-        The digitized data.
+        The digitized gene_pertubation.
     """
     assert x.ndim == 1 and bins.ndim == 1
 
@@ -51,7 +51,7 @@ def binning(
 
     if row.max() == 0:
         logger.warning(
-            "The input data contains row of zeros. Please make sure this is expected."
+            "The input gene_pertubation contains row of zeros. Please make sure this is expected."
         )
         return (
             np.zeros_like(row, dtype=dtype)

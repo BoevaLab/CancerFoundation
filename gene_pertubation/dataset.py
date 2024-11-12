@@ -265,7 +265,7 @@ def condition_fc_groups_by_cov(
 def computecs(qup, qdown, expression):
     '''
     This function takes qup & qdown, which are lists of gene
-    names, and  expression, a panda data frame of the expressions
+    names, and  expression, a panda gene_pertubation frame of the expressions
     of genes as input, and output the connectivity score vector
     '''
     r1 = ranklist(expression)
@@ -291,7 +291,7 @@ def computecs(qup, qdown, expression):
 
 def computees(q, r1):
     '''
-    This function takes q, a list of gene names, and r1, a panda data
+    This function takes q, a list of gene names, and r1, a panda gene_pertubation
     frame as the input, and output the enrichment score vector
     '''
     if len(q) == 0:
@@ -320,8 +320,8 @@ def computees(q, r1):
 
 
 def ranklist(DT):
-    # This function takes a panda data frame of gene names and expressions
-    # as an input, and output a data frame of gene names and ranks
+    # This function takes a panda gene_pertubation frame of gene names and expressions
+    # as an input, and output a gene_pertubation frame of gene names and ranks
     ranks = DT.rank(ascending=False, method="first")
     return ranks
 

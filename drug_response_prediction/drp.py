@@ -34,7 +34,7 @@ TCGA_label_set = ["ALL", "BLCA", "BRCA", "CESC", "DLBC", "LIHC", "LUAD",
                   "ESCA", "GBM", "HNSC", "KIRC", "LAML", "LCML", "LGG",
                   "LUSC", "MESO", "MM", "NB", "OV", "PAAD", "SCLC", "SKCM",
                   "STAD", "THCA", 'COAD/READ']
-DPATH = './data'
+DPATH = './gene_pertubation'
 Drug_info_file = f"./{DPATH}/drug/metadata.csv"
 # '%s/CCLE/Cell_lines_annotations_20181226.txt' % DPATH
 Cell_line_info_file = f"./{DPATH}/cell_line/metadata.txt"
@@ -78,7 +78,7 @@ def MetadataGenerate(Drug_info_file, Cell_line_info_file, Drug_feature_file, Gen
 
     experiment_data = pd.read_csv(
         Cancer_response_exp_file, sep=',', header=0, index_col=[0])
-    # filter experiment data
+    # filter experiment gene_pertubation
     drug_match_list = [item for item in experiment_data.index if item.split(':')[
         1] in drugid2pubchemid.keys()]
     experiment_data_filtered = experiment_data.loc[drug_match_list]
@@ -129,7 +129,7 @@ def CalculateGraphFeat(feat_mat, adj_list):
             edge_index.append([node, neighbor])
     edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
 
-    # Create a data object
+    # Create a gene_pertubation object
     data = Data(x=torch.tensor(feat_mat).float(),
                 edge_index=edge_index)
 
@@ -319,7 +319,7 @@ def main():
 
     pcc_real = compute_pcc(np.concatenate(all_targets),
                            np.concatenate(all_outputs))
-    print(f"PCC on hold-out data: {pcc_real}.")
+    print(f"PCC on hold-out gene_pertubation: {pcc_real}.")
 
     embedding_identifier = args.embedding_path[args.embedding_path.rfind(
         "/")+1: args.embedding_path.rfind(".csv")]

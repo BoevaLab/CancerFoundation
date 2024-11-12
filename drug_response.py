@@ -10,9 +10,10 @@ import torch
 from anndata import AnnData
 from scipy import sparse
 from torch.utils.data.dataloader import DataLoader
+from tqdm import tqdm
 
-from data.collator import DrugCollator
-from data.dataset import DrugDoseAnnDataset
+from gene_pertubation.collator import DrugCollator
+from gene_pertubation.dataset import DrugDoseAnnDataset
 from model.cancergpt import CancerGPT, DrugDoseGPT, PAdaptor
 from model.utils import load_pretrained
 from model.vocab import GeneVocab
@@ -35,7 +36,7 @@ def shuffle_adata(adata):
     new_adata = adata[ind_list, :]
     return new_adata
 
-def train_valid_test(adata: AnnData, split_key="random_split_0"):
+def train_valid_test(adata: AnnData, split_key):
     '''
     Get train_valid_test dataset
     '''
@@ -81,15 +82,11 @@ def move_to(obj, device):
     else:
         raise TypeError("Invalid type for move_to")
 
-max_length: int = 1200
-batch_size: int = 128
-
-
-
 
 class DrugDoseTrainer:
     def __init__(
             self,
+            split_key: str,
             model_dir: str = "model/assets",
             device: str = "cuda",
             max_length: int = 1200,
@@ -105,6 +102,7 @@ class DrugDoseTrainer:
         self.n_features = n_features
         self.n_latent = n_latent
         self.learning_rate = learning_rate
+        self.split_key = split_key
 
         # Constants
         self.pad_token = "<pad>"
@@ -167,8 +165,8 @@ class DrugDoseTrainer:
             keep_first_n_tokens=1,
         )
 
-        # Split data
-        train_adata, valid_adata, test_adata = train_valid_test(adata)
+        # Split gene_pertubation
+        train_adata, valid_adata, test_adata = train_valid_test(adata, split_key=self.split_key)
 
         # Create datasets
         train_dataset = DrugDoseAnnDataset(train_adata, gene_ids,
@@ -180,12 +178,12 @@ class DrugDoseTrainer:
 
         return train_dataset, valid_dataset, test_dataset, collator
 
-    def train_epoch(self, train_loader, collator):
+    def train_epoch(self, train_loader):
         self.model.train()
         total_loss = 0
         num_batches = 0
 
-        for data_dict in train_loader:
+        for data_dict in tqdm(train_loader, total=len(train_loader)):
             self.optimizer.zero_grad()
             data_dict = move_to(data_dict, self.device)
 
@@ -205,7 +203,7 @@ class DrugDoseTrainer:
 
         return total_loss / num_batches
 
-    def validate(self, valid_loader, collator):
+    def validate(self, valid_loader):
         self.model.eval()
         total_loss = 0
         num_batches = 0
@@ -227,53 +225,30 @@ class DrugDoseTrainer:
 
         return total_loss / num_batches
 
-    def train(self, adata: AnnData, num_epochs: int = 10, early_stopping_patience: int = 3):
-        # Prepare datasets
+    def train(self, adata: AnnData, max_epochs: int = 100):
         train_dataset, valid_dataset, test_dataset, collator = self.prepare_data(adata)
 
-        # Create data loaders
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, collate_fn=collator, shuffle=True)
         valid_loader = DataLoader(valid_dataset, batch_size=self.batch_size,
                                   collate_fn=collator) if valid_dataset else None
 
-        # Training loop with early stopping
-        best_valid_loss = float('inf')
-        patience_counter = 0
 
-        for epoch in range(num_epochs):
-            train_loss = self.train_epoch(train_loader, collator)
+        for epoch in range(max_epochs):
+            train_loss = self.train_epoch(train_loader)
 
             if valid_loader:
-                valid_loss = self.validate(valid_loader, collator)
-                print(f"Epoch {epoch + 1}/{num_epochs} - Train Loss: {train_loss:.4f} - Valid Loss: {valid_loss:.4f}")
-
-                # Early stopping check
-                if valid_loss < best_valid_loss:
-                    best_valid_loss = valid_loss
-                    patience_counter = 0
-                else:
-                    patience_counter += 1
-                    if patience_counter >= early_stopping_patience:
-                        print(f"Early stopping triggered after {epoch + 1} epochs")
-                        break
-            else:
-                print(f"Epoch {epoch + 1}/{num_epochs} - Train Loss: {train_loss:.4f}")
-
-        return train_loss, best_valid_loss if valid_loader else None
+                valid_loss = self.validate(valid_loader)
 
 
 # Example usage
 if __name__ == "__main__":
-    # Load data
-    adata = sc.read_h5ad("demo.h5ad")
-    # drugs = adata.obs_names[adata.obs["dose"] != 0.0].to_list()[:2000]
-    # control = adata.obs.loc[drugs]["paired_control_index"].to_list()
-    # adata = adata[drugs + control, :]
+    # Load gene_pertubation
+    adata = sc.read_h5ad("gene_pertubation/L1000_small.h5ad")
     adata.var["genes"] = adata.var.index
 
     # Initialize and train
-    trainer = DrugDoseTrainer()
-    train_loss, valid_loss = trainer.train(adata, num_epochs=10, early_stopping_patience=3)
+    trainer = DrugDoseTrainer(split_key="random_split_0", batch_size=64)
+    trainer.train(adata, max_epochs=100)
 
 
 

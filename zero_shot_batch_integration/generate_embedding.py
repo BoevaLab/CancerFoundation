@@ -5,7 +5,7 @@ import scanpy as sc
 import os
 
 model_dir = "../model/assets"
-adata_path = "./data/neftel_ss2.h5ad"
+adata_path = "./gene_pertubation/neftel_ss2.h5ad"
 
 adata = sc.read_h5ad(adata_path)
 batch_key = "sample"  # The batch identity is used for highly variable gene selection
@@ -17,5 +17,5 @@ embed_adata = embed(
     batch_key=batch_key,
     batch_size=64,
 )
-os.makedirs("./data", exist_ok=True)
-embed_adata.write_h5ad("./data/CancerGPT_neftel_ss2.h5ad")
+os.makedirs("./gene_pertubation", exist_ok=True)
+embed_adata.write_h5ad("./gene_pertubation/CancerGPT_neftel_ss2.h5ad")
