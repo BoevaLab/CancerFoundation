@@ -16,7 +16,7 @@ import random
 
 import torch
 from torch.utils.data import Dataset
-
+from rdkit.Chem import rdFingerprintGenerator
 import scanpy as sc
 import numpy as np
 import pandas as pd
@@ -64,12 +64,12 @@ def Drug_dose_encoder(drug_SMILES_list: list, dose_list: list, num_Bits=1024, co
     """
     drug_len = len(drug_SMILES_list)
     fcfp4_array = np.zeros((drug_len, num_Bits))
-
+    mfpgen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=num_Bits, atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen())
     if comb_num == 1:
-        for i, smiles in enumerate(drug_SMILES_list):
+        for i, smiles in tqdm(enumerate(drug_SMILES_list), total=drug_len):
             smi = smiles
             mol = Chem.MolFromSmiles(smi)
-            fcfp4 = AllChem.GetMorganFingerprintAsBitVect(mol, 2, useFeatures=True, nBits=num_Bits).ToBitString()
+            fcfp4 = mfpgen.GetFingerprint(mol).ToBitString()
             fcfp4_list = np.array(list(fcfp4), dtype=np.float32)
             fcfp4_list = fcfp4_list * np.log10(dose_list[i] + 1)
             fcfp4_array[i] = fcfp4_list
@@ -78,7 +78,7 @@ def Drug_dose_encoder(drug_SMILES_list: list, dose_list: list, num_Bits=1024, co
             smiles_list = smiles.split('+')
             for smi in smiles_list:
                 mol = Chem.MolFromSmiles(smi)
-                fcfp4 = AllChem.GetMorganFingerprintAsBitVect(mol, 2, useFeatures=True, nBits=num_Bits).ToBitString()
+                fcfp4 = mfpgen.GetFingerprint(mol).ToBitString()
                 fcfp4_list = np.array(list(fcfp4), dtype=np.float32)
                 fcfp4_list = fcfp4_list * np.log10(float(dose_list[i]) + 1)
                 fcfp4_array[i] += fcfp4_list

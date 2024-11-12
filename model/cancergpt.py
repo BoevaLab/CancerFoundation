@@ -108,16 +108,18 @@ class PAdaptor(nn.Module):
 
     """
 
-    def __init__(self, layer_sizes: list, comb_dimension: int, dropout_rate: float):
+    def __init__(self, n_features: int, n_genes: int, n_latent: int, dropout_rate: float=0.1):
         super().__init__() # to run nn.Module's init method
-        self.linear1 = nn.Linear(1024, 978)
-        self.linear2 = nn.Linear(1, 256)
+        self.linear1 = nn.Linear(n_features, n_genes)
+        self.linear2 = nn.Linear(1, n_latent)
         self.act = nn.ReLU()
+        self.dropout = nn.Dropout(p=dropout_rate)
 
 
     def forward(self, x: torch.Tensor):
         x = self.linear1(x)
         x = self.act(x)
+        self.dropout(x)
         x = x.unsqueeze(-1)
         x = self.linear2(x)
         return x
