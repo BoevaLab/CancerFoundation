@@ -20,3 +20,5 @@ training_data/data
 *.png
 *.csv
 *.pth
+save
+example
