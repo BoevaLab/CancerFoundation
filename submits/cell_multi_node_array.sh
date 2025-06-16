@@ -2,7 +2,7 @@
 #SBATCH --job-name=cf-pretrain
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=1
-#SBATCH --time=6:00:00
+#SBATCH --time=12:00:00
 #SBATCH --gpus-per-node=4
 #SBATCH --array [0-14]%1
 
