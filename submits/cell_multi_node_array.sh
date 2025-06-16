@@ -11,11 +11,11 @@
 # Run job step
 LOG_INTERVAL=16
 MAX_LENGTH=1200
-per_proc_batch_size=16
+per_proc_batch_size=64
 LAYERS=6
 EMBSIZE=256
 JOB_NAME="debug"
-SAVE_DIR="./save/cell"
+SAVE_DIR="./save/cell_no_dat"
 export GPUS_PER_NODE=4
 
 CURRENT_EPOCH=$SLURM_ARRAY_TASK_ID
@@ -26,12 +26,7 @@ if [ $CURRENT_EPOCH -eq 0 ]; then
   echo "Running first epoch (epoch $CURRENT_EPOCH)"
 
 srun --environment=bionemo accelerate launch \
-    --num_processes $((SLURM_NNODES * GPUS_PER_NODE)) \
-    --num_machines $SLURM_NNODES \
-    --machine_rank $SLURM_PROCID \
-    --rdzv_backend c10d \
-    --main_process_ip $head_node_ip \
-    --main_process_port 29501 \
+    --num_processes $GPUS_PER_NODE \
     --mixed_precision bf16 \
     ./pretrain.py \
     --save-dir $SAVE_DIR \
@@ -54,7 +49,6 @@ srun --environment=bionemo accelerate launch \
     --balance-primary "tissue" \
     --balance-secondary "technology" \
     --conditions "technology" \
-    --do-dat \
     --wandb "fulldata"
 
 else
@@ -62,12 +56,7 @@ PREV_EPOCH=$((CURRENT_EPOCH - 1))
 CHECKPOINT_PATH="$SAVE_DIR/epoch_$PREV_EPOCH"
 
 srun --environment=bionemo accelerate launch \
-    --num_processes $((SLURM_NNODES * GPUS_PER_NODE)) \
-    --num_machines $SLURM_NNODES \
-    --machine_rank $SLURM_PROCID \
-    --rdzv_backend c10d \
-    --main_process_ip $head_node_ip \
-    --main_process_port 29505 \
+    --num_processes $GPUS_PER_NODE \
     --mixed_precision bf16 \
     ./pretrain.py \
     --resume-from-checkpoint $CHECKPOINT_PATH \
